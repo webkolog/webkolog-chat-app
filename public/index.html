@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Real-time Chat</title>
+    <style>
+        #chat-window { height: 300px; border: 1px solid #ccc; overflow-y: scroll; padding: 10px; margin-bottom: 10px; }
+        .read-status { font-size: 0.8em; color: blue; margin-left: 5px; }
+        #typing-indicator { font-style: italic; color: gray; height: 20px; }
+    </style>
+</head>
+<body>
+    <h2>Webkolog Chat App</h2>
+    <input type="text" id="username" placeholder="Adınız">
+    <input type="text" id="roomInput" placeholder="Oda Adı">
+    <button onclick="joinRoom()">Odaya Katıl</button>
+
+    <div id="chat-window"></div>
+    <div id="typing-indicator"></div>
+
+    <input type="text" id="messageInput" placeholder="Mesaj yazın..." onkeypress="handleTyping()">
+    <button onclick="sendMessage()">Gönder</button>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let currentRoom = "";
+        let timeout;
+
+        function joinRoom() {
+            currentRoom = document.getElementById('roomInput').value;
+            socket.emit('join_room', currentRoom);
+            alert(currentRoom + " odasına girildi.");
+        }
+
+        // Mesaj Gönderme
+        function sendMessage() {
+            const message = document.getElementById('messageInput').value;
+            const sender = document.getElementById('username').value;
+            const msgId = 'msg_' + Date.now();
+
+            const data = { room: currentRoom, message, sender, msgId };
+            socket.emit('send_message', data);
+            document.getElementById('messageInput').value = "";
+        }
+
+        // Mesaj Alma
+        socket.on('receive_message', (data) => {
+            const chatWindow = document.getElementById('chat-window');
+            const msgDiv = document.createElement('div');
+            msgDiv.id = data.msgId;
+            msgDiv.innerHTML = `**${data.sender}:** ${data.message} <span class="read-status" id="status_${data.msgId}"></span>`;
+            chatWindow.appendChild(msgDiv);
+
+            // Eğer mesaj başkasından geldiyse "okundu" bilgisini geri gönder
+            if(data.sender !== document.getElementById('username').value) {
+                socket.emit('message_read', { room: currentRoom, msgId: data.msgId });
+            }
+        });
+
+        // Yazıyor... Mantığı
+        function handleTyping() {
+            socket.emit('typing', { room: currentRoom, user: document.getElementById('username').value, isTyping: true });
+            
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                socket.emit('typing', { room: currentRoom, user: document.getElementById('username').value, isTyping: false });
+            }, 2000);
+        }
+
+        socket.on('display_typing', (data) => {
+            const indicator = document.getElementById('typing-indicator');
+            indicator.innerText = data.isTyping ? `${data.user} yazıyor...` : "";
+        });
+
+        // Okundu Bilgisini Güncelleme
+        socket.on('update_read_status', (data) => {
+            const statusSpan = document.getElementById(`status_${data.msgId}`);
+            if (statusSpan) statusSpan.innerText = "✓ Görüldü";
+        });
+    </script>
+</body>
+</html>

@@ -20,6 +20,9 @@ io.on('connection', (socket) => {
     // Mesaj Gönderme
     socket.on('send_message', (data) => {
         // data: { room, message, sender, msgId }
+		// Mesajı terminale yazdıralım:
+		console.log(`[MESAJ] Oda: ${data.room} | Gönderen: ${data.sender} | İçerik: ${data.message}`);
+		// Sonra yine tarayıcılara gönderelim:
         io.to(data.room).emit('receive_message', data);
     });
 

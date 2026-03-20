@@ -14,7 +14,8 @@
     <input type="text" id="username" placeholder="Adınız">
     <input type="text" id="roomInput" placeholder="Oda Adı">
     <button onclick="joinRoom()">Odaya Katıl</button>
-
+	
+	<h3 id="current-room-display">Henüz bir odaya girmediniz.</h3>
     <div id="chat-window"></div>
     <div id="typing-indicator"></div>
 
@@ -27,11 +28,33 @@
         let currentRoom = "";
         let timeout;
 
+		/*
         function joinRoom() {
             currentRoom = document.getElementById('roomInput').value;
             socket.emit('join_room', currentRoom);
             alert(currentRoom + " odasına girildi.");
         }
+		*/
+		
+		function joinRoom() {
+			const roomInput = document.getElementById('roomInput');
+			currentRoom = roomInput.value;
+
+			if (currentRoom !== "") {
+				// Sunucuya odaya katılma isteği gönder
+				socket.emit('join_room', currentRoom);
+
+				// Sayfadaki başlığı güncelle
+				document.getElementById('current-room-display').innerText = "Şu anki Oda: " + currentRoom;
+				
+				// Giriş alanını temizle (isteğe bağlı)
+				roomInput.value = "";
+				
+				console.log(currentRoom + " odasına başarıyla girildi.");
+			} else {
+				alert("Lütfen bir oda adı girin!");
+			}
+		}
 
         // Mesaj Gönderme
         function sendMessage() {
@@ -49,7 +72,7 @@
             const chatWindow = document.getElementById('chat-window');
             const msgDiv = document.createElement('div');
             msgDiv.id = data.msgId;
-            msgDiv.innerHTML = `**${data.sender}:** ${data.message} <span class="read-status" id="status_${data.msgId}"></span>`;
+            msgDiv.innerHTML = `<b>${data.sender}:</b> ${data.message} <span class="read-status" id="status_${data.msgId}"></span>`;
             chatWindow.appendChild(msgDiv);
 
             // Eğer mesaj başkasından geldiyse "okundu" bilgisini geri gönder
